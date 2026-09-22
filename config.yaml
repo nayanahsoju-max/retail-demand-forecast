@@ -1,0 +1,29 @@
+paths:
+  data_dir: data
+  artifact_dir: artifacts
+database:
+  url: "sqlite:///retail_forecast.db"
+forecast:
+  target: sales
+  horizon_days: 16
+  frequency: D
+features:
+  lags: [1, 7, 14, 28]
+  rolling_windows: [7, 14, 28]
+backtest:
+  initial_train_days: 180
+  horizon_days: 16
+  step_days: 16
+  max_windows: 4
+models:
+  sarimax:
+    order: [1, 1, 1]
+    seasonal_order: [0, 1, 1, 7]
+  xgboost:
+    n_estimators: 300
+    max_depth: 6
+    learning_rate: 0.05
+  lstm:
+    hidden_size: 32
+    epochs: 10
+    learning_rate: 0.001
