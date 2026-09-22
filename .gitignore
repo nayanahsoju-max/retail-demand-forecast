@@ -219,4 +219,5 @@ __marimo__/
 venv/
 .env
 /data/
+/artifacts/
 .pytest-*/
