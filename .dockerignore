@@ -1,0 +1,15 @@
+.git
+.github
+.pytest_cache
+.pytest-*
+__pycache__
+*.py[cod]
+.env
+.venv
+venv
+data
+artifacts
+retail_forecast.db
+tests
+dashboard
+README.md
