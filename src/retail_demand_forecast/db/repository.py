@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import datetime
 
 import pandas as pd
 from sqlalchemy import Engine, create_engine, select
