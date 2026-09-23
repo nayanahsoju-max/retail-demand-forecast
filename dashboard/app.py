@@ -7,8 +7,9 @@ import os
 import plotly.express as px
 import streamlit as st
 
-from dashboard.data_access import prepare_chart_data, read_api, read_database
 from retail_demand_forecast.db.repository import ForecastRepository, create_database
+
+from dashboard.data_access import prepare_chart_data, read_api, read_database
 
 
 def main() -> None:
