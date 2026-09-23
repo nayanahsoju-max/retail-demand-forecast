@@ -34,7 +34,7 @@ class XGBoostForecaster:
         self._history: pd.DataFrame | None = None
         self._feature_columns: list[str] = []
 
-    def fit(self, train: pd.DataFrame) -> "XGBoostForecaster":
+    def fit(self, train: pd.DataFrame) -> XGBoostForecaster:
         """Build causal training features and fit a gradient-boosted regression model."""
         self._validate_frame(train)
         self._history = train.sort_values("date").copy()

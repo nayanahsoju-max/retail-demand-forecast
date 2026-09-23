@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import pandas as pd
 from statsmodels.tsa.statespace.sarimax import SARIMAX, SARIMAXResultsWrapper
@@ -26,7 +26,7 @@ class SARIMAXForecaster:
         self.date_column = date_column
         self._result: SARIMAXResultsWrapper | None = None
 
-    def fit(self, train: pd.DataFrame) -> "SARIMAXForecaster":
+    def fit(self, train: pd.DataFrame) -> SARIMAXForecaster:
         """Fit the statistical model to chronologically ordered historical sales."""
         self._validate_train(train)
         ordered = train.sort_values(self.date_column)

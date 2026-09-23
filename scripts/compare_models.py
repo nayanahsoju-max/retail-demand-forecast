@@ -11,7 +11,11 @@ from typing import Any
 import pandas as pd
 import yaml
 
-from retail_demand_forecast.backtest.rolling import BacktestRunner, ForecastModel, RollingWindowSplitter
+from retail_demand_forecast.backtest.rolling import (
+    BacktestRunner,
+    ForecastModel,
+    RollingWindowSplitter,
+)
 from retail_demand_forecast.data.loading import load_sales
 from retail_demand_forecast.db.repository import ForecastRepository, create_database
 from retail_demand_forecast.models import LSTMForecaster, SARIMAXForecaster, XGBoostForecaster

@@ -6,7 +6,6 @@ from collections.abc import Sequence
 
 import pandas as pd
 
-
 DEFAULT_SERIES_COLUMNS = ("store_nbr", "family")
 
 

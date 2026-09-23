@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator, Protocol
+from typing import Protocol
 
 import pandas as pd
 
@@ -27,7 +28,7 @@ class ForecastModel(Protocol):
 
     name: str
 
-    def fit(self, train: pd.DataFrame) -> "ForecastModel":
+    def fit(self, train: pd.DataFrame) -> ForecastModel:
         """Fit the model on a training frame."""
 
     def predict(self, future: pd.DataFrame) -> pd.Series:

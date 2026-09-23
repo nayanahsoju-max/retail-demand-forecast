@@ -45,7 +45,7 @@ class LSTMForecaster:
         self._std = 1.0
         self._history: list[float] = []
 
-    def fit(self, train: pd.DataFrame) -> "LSTMForecaster":
+    def fit(self, train: pd.DataFrame) -> LSTMForecaster:
         """Fit on overlapping lookback sequences from one chronologically ordered series."""
         self._validate_frame(train)
         values = train.sort_values("date")[self.target_column].astype(float).to_numpy()

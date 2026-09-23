@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from scripts.compare_models import run_comparison
 from retail_demand_forecast.db.repository import ForecastRepository, create_database
+from scripts.compare_models import run_comparison
 
 
 class LastValueModel:
