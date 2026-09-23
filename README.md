@@ -1,26 +1,30 @@
 # Retail Demand Forecast
 
-An end-to-end retail demand forecasting system built around Kaggle's
-Corporacion Favorita Store Sales dataset. It combines leakage-safe feature
-engineering, statistical and machine-learning forecasts, rolling-origin
-validation, persistence, and serving/dashboard layers.
+An end-to-end retail demand forecasting system built on Kaggle's Corporacion
+Favorita Store Sales dataset. It covers leakage-safe feature engineering,
+statistical and machine learning models, rolling-origin backtesting,
+persistence, and a serving/dashboard layer on top.
 
 ## Problem and approach
 
-The target is daily unit sales for a Favorita store and product family.
-Historical sales are joined with calendar, promotion, holiday, oil, and
-weather signals when available. Three model families share the same
-`fit`/`predict` contract:
+The goal is predicting daily unit sales for a given Favorita store and
+product family. Historical sales data is joined with calendar, promotion,
+holiday, oil price, and weather signals where available. Three models are
+implemented, all sharing the same `fit`/`predict` interface so they can be
+swapped in and out of the same backtest:
 
-- **SARIMAX** — interpretable seasonal statistical baseline.
-- **XGBoost** — calendar, lag, and trailing rolling-statistic features with
-  recursive multi-step prediction.
-- **LSTM** — scaled lookback sequences with recursive PyTorch inference.
+- **SARIMAX**: a seasonal statistical baseline, useful mainly for its
+  interpretability.
+- **XGBoost**: uses calendar features plus lag and rolling-statistic
+  features, with recursive multi-step prediction.
+- **LSTM**: a small PyTorch model trained on scaled lookback windows, also
+  predicting recursively.
 
-Validation uses expanding rolling windows. Every lag and rolling statistic is
-computed only from observations strictly before the prediction date; tests
-explicitly check that changing a future target cannot change earlier features.
-Metrics are RMSE, MAE, and WAPE.
+Validation is done with expanding rolling windows rather than a single
+train/test split. Every lag and rolling feature only looks at data strictly
+before the date being predicted; there are tests that specifically check
+that changing a future value can't leak into an earlier prediction. Models
+are compared using RMSE, MAE, and WAPE.
 
 ## Architecture
 
@@ -38,68 +42,68 @@ Favorita CSVs + external APIs
                     Streamlit + Plotly dashboard
 ```
 
-The package lives under `src/retail_demand_forecast`: `data`, `features`,
-`models`, `backtest`, `db`, and `api`. `scripts/compare_models.py` orchestrates
-the full comparison. `dashboard/` contains the interactive UI, and
-`docker-compose.yml` runs the API, dashboard, and PostgreSQL services.
+The main package is under `src/retail_demand_forecast`, split into `data`,
+`features`, `models`, `backtest`, `db`, and `api` modules. `scripts/compare_models.py`
+runs the full pipeline end to end. `dashboard/` has the Streamlit UI, and
+`docker-compose.yml` spins up the API, dashboard, and PostgreSQL together.
 
 ## Setup
 
-The repository assumes the supplied `retail-forecast` conda environment and
-the Favorita CSVs in `data/` already exist.
+This assumes the `retail-forecast` conda environment is already set up and
+the Favorita CSVs are sitting in `data/`.
 
 ```bash
 conda activate retail-forecast
 set PYTHONPATH=src
 ```
 
-For a fresh environment, install the project requirements with
-`python -m pip install -r requirements.txt`; do not commit the dataset or
-generated artifacts.
+If you're setting this up fresh, install everything with
+`python -m pip install -r requirements.txt`. Don't commit the dataset or
+anything generated under `artifacts/`.
 
-**Note:** the Streamlit dashboard imports from a top-level `dashboard` module
-in addition to the `retail_demand_forecast` package, so when running the
-dashboard locally, `PYTHONPATH` must include both the `src/` folder and the
-repository root:
+One thing to watch for: the Streamlit dashboard imports from a top-level
+`dashboard` module, not just from `retail_demand_forecast`. So when running
+the dashboard specifically, `PYTHONPATH` needs both the repo root and `src/`:
 
 ```bash
 set PYTHONPATH=src;.
 streamlit run dashboard/app.py
 ```
 
-The FastAPI server and comparison script only need `src/` on the path:
+The API and the comparison script only need `src/`:
 
 ```bash
 set PYTHONPATH=src
 uvicorn retail_demand_forecast.api.app:app --reload
 ```
 
-Run the test suite:
+To run the tests:
 
 ```bash
 pytest -q
 ```
 
-## Run a model comparison
+## Running a comparison
 
-The command below filters one store/family, runs the configured four rolling
-windows, writes `backtest_predictions.csv` and `backtest_metrics.csv` under
-`artifacts/`, and persists the same results to the configured SQLite database.
+This runs all three models for one store/family, across four 16-day rolling
+windows, and saves the results both as CSVs under `artifacts/` and into the
+configured SQLite database.
 
 ```bash
 set PYTHONPATH=src
 python scripts/compare_models.py --store 1 --family "GROCERY I"
 ```
 
-Configuration is in [config.yaml](config.yaml), including date/window sizes,
-feature periods, model hyperparameters, artifact location, and database URL.
-External holiday/weather responses are cached under `data/cache/`.
+Most of the settings (window sizes, feature lags, model hyperparameters,
+artifact paths, database URL) live in `config.yaml`. Weather and holiday API
+responses get cached under `data/cache/` so repeated runs don't hammer those
+APIs.
 
-## Real backtest results
+## Results
 
-### Store 1 / GROCERY I
+### Store 1, GROCERY I
 
-Four 16-day rolling windows were run against the real training CSV.
+Four 16-day rolling windows, run against the real training data:
 
 | Model | Mean RMSE | Mean MAE | Mean WAPE |
 |---|---:|---:|---:|
@@ -107,13 +111,15 @@ Four 16-day rolling windows were run against the real training CSV.
 | XGBoost | 214.101 | **166.436** | **9.342%** |
 | LSTM | 493.094 | 363.629 | 20.305% |
 
-SARIMAX had the lowest RMSE; XGBoost had the lowest MAE and WAPE.
+SARIMAX edges out XGBoost on RMSE, but XGBoost wins on MAE and WAPE. LSTM
+lags behind both, likely because a single-series lookback model like this
+needs more training data than one store/family combination provides.
 
-### Five-series sample
+### Broader sample, five series
 
-Three high-volume Grocery I series (stores 44, 45, and 3) and two low-volume
-series (store 36 Hardware and store 6 Home Appliances) were evaluated over the
-same four windows. The table below pools all 320 forecast points per model.
+Three high-volume Grocery I series (stores 44, 45, 3) and two low-volume
+series (store 36 Hardware, store 6 Home Appliances), same four rolling
+windows. Numbers below pool all 320 forecasts per model:
 
 | Model | RMSE | MAE | WAPE |
 |---|---:|---:|---:|
@@ -121,49 +127,49 @@ same four windows. The table below pools all 320 forecast points per model.
 | XGBoost | 1589.523 | 606.953 | 13.931% |
 | LSTM | 1471.273 | 848.636 | 19.478% |
 
-WAPE is highly sensitive for the low-volume series because their actual-sales
-denominators are very small. Raw per-window CSVs are generated under
-`artifacts/` when comparisons are run.
+Worth noting: WAPE gets unstable on the low-volume series, since it's
+sensitive to how close actual sales are to zero. A store selling one or two
+hardware items a day can have a technically huge WAPE even when the raw
+error is tiny. Per-window CSVs for all of this get generated under
+`artifacts/` whenever you run a comparison yourself.
 
-## Serve the API
+## Running the API
 
 ```bash
 set PYTHONPATH=src
 uvicorn retail_demand_forecast.api.app:app --reload
 ```
 
-Interactive docs: <http://127.0.0.1:8000/docs>
+Docs are at <http://127.0.0.1:8000/docs>. Main endpoints:
 
 - `GET /health`
 - `GET /predictions?store_nbr=1&family=GROCERY%20I&model=xgboost`
 - `GET /backtests?store_nbr=1&family=GROCERY%20I`
 
-## Run the dashboard
+## Running the dashboard
 
 ```bash
 set PYTHONPATH=src;.
 streamlit run dashboard/app.py
 ```
 
-Open <http://localhost:8501>. The sidebar can read from the local database or
-a running API, then plots actuals against each model and summarizes metrics.
+Then open <http://localhost:8501>. You can point it at either the local
+database or a running instance of the API, and it'll plot actuals against
+each model's predictions along with the summary metrics.
 
-## Docker deployment
+## Docker
 
-Docker Compose starts PostgreSQL, FastAPI, and Streamlit:
+`docker compose up --build` starts PostgreSQL, the FastAPI service, and the
+Streamlit dashboard together. The API ends up at
+<http://localhost:8000/docs>, the dashboard at <http://localhost:8501>.
+Postgres data persists in the `postgres_data` volume. The image sets
+`PYTHONPATH=/app/src:/app` so both the package and the top-level dashboard
+module resolve correctly inside the container.
 
-```bash
-docker compose up --build
-```
-
-The API is at <http://localhost:8000/docs> and the dashboard is at
-<http://localhost:8501>. PostgreSQL data is stored in the `postgres_data`
-volume. The image sets `PYTHONPATH=/app/src:/app` so both package and
-top-level dashboard imports resolve.
-
-## CI and development
+## CI
 
 GitHub Actions runs Ruff and pytest on every push and pull request. Public
-functions use type hints and docstrings; runtime paths use logging rather than
-print statements. Generated CSVs, caches, local SQLite files, and the Kaggle
-dataset are excluded from version control.
+functions have type hints and docstrings, and the code uses logging instead
+of print statements for anything that runs at runtime. The Kaggle dataset,
+generated CSVs, caches, and local SQLite files are all excluded from version
+control.
