@@ -13,6 +13,7 @@ import yaml
 
 from retail_demand_forecast.backtest.rolling import BacktestRunner, ForecastModel, RollingWindowSplitter
 from retail_demand_forecast.data.loading import load_sales
+from retail_demand_forecast.db.repository import ForecastRepository, create_database
 from retail_demand_forecast.models import LSTMForecaster, SARIMAXForecaster, XGBoostForecaster
 
 LOGGER = logging.getLogger(__name__)
@@ -23,8 +24,11 @@ def run_comparison(
     output_dir: str | Path,
     backtest_config: Mapping[str, Any],
     model_factories: Mapping[str, Callable[[], ForecastModel]] | None = None,
+    database_url: str | None = None,
+    store_nbr: int | None = None,
+    family: str | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Backtest each model and save combined prediction and metric CSV files."""
+    """Backtest each model, save CSV artifacts, and optionally persist database results."""
     splitter = RollingWindowSplitter(
         initial_train_days=int(backtest_config["initial_train_days"]),
         horizon_days=int(backtest_config["horizon_days"]),
@@ -45,6 +49,12 @@ def run_comparison(
     destination.mkdir(parents=True, exist_ok=True)
     all_predictions.to_csv(destination / "backtest_predictions.csv", index=False)
     all_metrics.to_csv(destination / "backtest_metrics.csv", index=False)
+    if database_url is not None:
+        if store_nbr is None or family is None:
+            raise ValueError("Database persistence requires both store_nbr and family")
+        repository = ForecastRepository(create_database(database_url))
+        repository.save_predictions(all_predictions, store_nbr, family)
+        repository.save_backtest_metrics(all_metrics, store_nbr, family)
     LOGGER.info("Saved %d predictions and %d metric rows to %s", len(all_predictions), len(all_metrics), destination)
     return all_predictions, all_metrics
 
@@ -78,7 +88,10 @@ def main() -> None:
     if sales.empty:
         raise ValueError("No sales rows match the requested store and family")
     backtest_config = {**config["backtest"], "models": config["models"]}
-    run_comparison(sales, output_dir, backtest_config)
+    run_comparison(
+        sales, output_dir, backtest_config, database_url=config["database"]["url"],
+        store_nbr=args.store, family=args.family,
+    )
 
 
 if __name__ == "__main__":
