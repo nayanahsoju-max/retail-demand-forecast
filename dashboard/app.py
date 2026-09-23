@@ -7,9 +7,8 @@ import os
 import plotly.express as px
 import streamlit as st
 
-from retail_demand_forecast.db.repository import ForecastRepository, create_database
-
 from dashboard.data_access import prepare_chart_data, read_api, read_database
+from retail_demand_forecast.db.repository import ForecastRepository, create_database
 
 
 def main() -> None:
@@ -30,7 +29,7 @@ def main() -> None:
             predictions, metrics = read_database(repository, int(store_nbr), family.strip())
         else:
             predictions, metrics = read_api(api_url, int(store_nbr), family.strip())
-    except Exception as error:
+    except Exception as error:  # noqa: BLE001 - dashboard should render data errors instead of crashing
         st.error(f"Unable to load forecast results: {error}")
         return
     if predictions.empty:
