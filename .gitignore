@@ -220,4 +220,5 @@ venv/
 .env
 /data/
 /artifacts/
+/retail_forecast.db
 .pytest-*/
