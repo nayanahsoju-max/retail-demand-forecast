@@ -48,18 +48,35 @@ the full comparison. `dashboard/` contains the interactive UI, and
 The repository assumes the supplied `retail-forecast` conda environment and
 the Favorita CSVs in `data/` already exist.
 
-```powershell
+```bash
 conda activate retail-forecast
-$env:PYTHONPATH = "src"
+set PYTHONPATH=src
 ```
 
 For a fresh environment, install the project requirements with
 `python -m pip install -r requirements.txt`; do not commit the dataset or
 generated artifacts.
 
+**Note:** the Streamlit dashboard imports from a top-level `dashboard` module
+in addition to the `retail_demand_forecast` package, so when running the
+dashboard locally, `PYTHONPATH` must include both the `src/` folder and the
+repository root:
+
+```bash
+set PYTHONPATH=src;.
+streamlit run dashboard/app.py
+```
+
+The FastAPI server and comparison script only need `src/` on the path:
+
+```bash
+set PYTHONPATH=src
+uvicorn retail_demand_forecast.api.app:app --reload
+```
+
 Run the test suite:
 
-```powershell
+```bash
 pytest -q
 ```
 
@@ -69,8 +86,8 @@ The command below filters one store/family, runs the configured four rolling
 windows, writes `backtest_predictions.csv` and `backtest_metrics.csv` under
 `artifacts/`, and persists the same results to the configured SQLite database.
 
-```powershell
-$env:PYTHONPATH = "src"
+```bash
+set PYTHONPATH=src
 python scripts/compare_models.py --store 1 --family "GROCERY I"
 ```
 
@@ -110,8 +127,8 @@ denominators are very small. Raw per-window CSVs are generated under
 
 ## Serve the API
 
-```powershell
-$env:PYTHONPATH = "src"
+```bash
+set PYTHONPATH=src
 uvicorn retail_demand_forecast.api.app:app --reload
 ```
 
@@ -123,8 +140,8 @@ Interactive docs: <http://127.0.0.1:8000/docs>
 
 ## Run the dashboard
 
-```powershell
-$env:PYTHONPATH = "src"
+```bash
+set PYTHONPATH=src;.
 streamlit run dashboard/app.py
 ```
 
@@ -135,7 +152,7 @@ a running API, then plots actuals against each model and summarizes metrics.
 
 Docker Compose starts PostgreSQL, FastAPI, and Streamlit:
 
-```powershell
+```bash
 docker compose up --build
 ```
 
